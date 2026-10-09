@@ -1,55 +1,25 @@
----
-title: DocuGraph AI
-emoji: 📄
-colorFrom: gray
-colorTo: blue
-sdk: static
-pinned: false
----
+# DocuGraph AI — RAG Ingestion & Context Engineering Workbench
 
-# DocuGraph AI — RAG Context & Chunking Diagnostics Workbench
+DocuGraph AI is an interactive diagnostic platform designed for AI and Search Engineers to simulate, visualize, and benchmark document chunking strategies before ingestion into vector databases.
 
-An interactive diagnostics workbench designed for AI engineers to simulate, evaluate, and optimize document partitioning strategies for Retrieval-Augmented Generation (RAG) pipelines.
+## Problem Statement
+In production Retrieval-Augmented Generation (RAG) pipelines, arbitrary text partitioning leads to boundary context loss, fragmented entity co-references, and token dilution. DocuGraph addresses this by profiling chunk coherence and generating synthetic test queries.
 
----
+## Features
+- **Configurable Chunking Algorithms:**
+  - *Fixed-Character Window:* Sliding window with dynamic character overlap configuration.
+  - *Recursive Paragraph Splitting:* Structural splitting preserving semantic section integrity.
+- **Real-Time Distribution Analytics:** Computes total segments, average character volume, and overlap ratio dynamically.
+- **Generative Quality Audit (Gemini 3.8 Flash):**
+  - **Coherence Scoring (1–10):** Assesses semantic completeness and self-containment.
+  - **Boundary Loss Detection:** Identifies cut-off assertions and broken relational statements.
+  - **Synthetic Retrieval Queries:** Synthesizes realistic evaluation questions to validate dense embedding retrieval quality.
+- **Benchmarking Export:** Exports chunk distributions and audit metrics to standardized JSON format.
 
-## Overview
+## Tech Stack
+- Vanilla JavaScript (ES6+), HTML5, CSS3 Design System
+- Google Generative AI (Gemini 3.8 Flash)
+- Hosted on Hugging Face Spaces
 
-In production RAG workflows, chunk boundary selection directly impacts dense retrieval accuracy. Suboptimal chunking causes context fragmentation, lost entity co-references, and token dilution. 
-
-**DocuGraph AI** runs client-side partitioning algorithms coupled with generative validation via the Gemini API to assess semantic integrity before documents reach vector databases.
-
----
-
-## Key Features
-
-- **Configurable Partition Strategies:**
-  - *Fixed Character Chunking* with customizable sliding window overlap.
-  - *Recursive Paragraph Splitting* aligned to document structural boundaries.
-- **Real-Time Distribution Metrics:**
-  - Immediate computation of total segment count, average chunk length, and window overlap ratio.
-- **Generative Context Auditing (Gemini API):**
-  - **Coherence Scoring (1–10):** Evaluates semantic completeness and self-containment.
-  - **Boundary Loss Detection:** Flags truncated facts, missing antecedents, or fragmented statements.
-  - **Synthetic Retrieval Queries:** Synthesizes realistic evaluation questions per chunk to test embedding retrieval accuracy.
-- **Zero-Backend Architecture:** Executes entirely in the browser using static Web APIs; API credentials remain stored locally in `localStorage`.
-- **Structured Audit Export:** Generates standardized JSON reports for integration with offline benchmarking workflows.
-
----
-
-## Technical Stack
-
-- **Frontend Engine:** HTML5, Modern CSS (Design System / Dark Theme), Vanilla JavaScript (ES6+)
-- **LLM Integration:** Google Generative AI (Gemini 2.5 Flash via REST API)
-- **Deployment Target:** Hugging Face Spaces (Static SDK) / GitHub Pages / Vercel
-
----
-
-## Quickstart
-
-1. Clone or open the repository.
-2. Launch `index.html` in any modern web browser or visit the hosted Hugging Face Space.
-3. (Optional) Provide your Gemini API key in the configuration bar to enable generative semantic auditing.
-4. Paste reference documentation or click **Load Benchmark Text**.
-5. Select a partitioning strategy and click **Generate Chunks**.
-6. Click **Run Semantic Quality Audit**
+## Live Demo
+[DocuGraph AI Live Space](https://huggingface.co/spaces/YOUR_USERNAME/docugraph-ai)
