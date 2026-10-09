@@ -22,4 +22,4 @@ In production Retrieval-Augmented Generation (RAG) pipelines, arbitrary text par
 - Hosted on Hugging Face Spaces
 
 ## Live Demo
-[DocuGraph AI Live Space](https://huggingface.co/spaces/YOUR_USERNAME/docugraph-ai)
+[DocuGraph AI Live Space](https://huggingface.co/spaces/nehalkamal7/docugraph-ai)
