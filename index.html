@@ -1,19 +1,577 @@
-<!doctype html>
-<html>
-	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width" />
-		<title>My static Space</title>
-		<link rel="stylesheet" href="style.css" />
-	</head>
-	<body>
-		<div class="card">
-			<h1>Welcome to your static Space!</h1>
-			<p>You can modify this app directly by editing <i>index.html</i> in the Files and versions tab.</p>
-			<p>
-				Also don't forget to check the
-				<a href="https://huggingface.co/docs/hub/spaces" target="_blank">Spaces documentation</a>.
-			</p>
-		</div>
-	</body>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DocuGraph — RAG Context & Chunking Diagnostics</title>
+  <style>
+    :root {
+      --bg-base: #090c10;
+      --bg-surface: #0d1117;
+      --bg-subtle: #161b22;
+      --border: #30363d;
+      --border-focus: #58a6ff;
+      --text-main: #f0f6fc;
+      --text-muted: #8b949e;
+      --primary: #1f6feb;
+      --primary-hover: #388bfd;
+      --danger: #f85149;
+      --warning: #d29922;
+      --success: #3fb950;
+      --font-code: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg-base);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    header {
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-surface);
+      padding: 14px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand-title {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.2px;
+    }
+    .brand-subtitle {
+      color: var(--text-muted);
+      font-size: 12px;
+      margin-left: 8px;
+      padding-left: 8px;
+      border-left: 1px solid var(--border);
+    }
+    .badge {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+
+    main {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .config-strip {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .config-strip label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+    .config-strip input {
+      flex: 1;
+      min-width: 280px;
+      background: var(--bg-base);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 12px;
+      color: var(--text-main);
+      font-family: var(--font-code);
+      font-size: 12px;
+    }
+    .config-strip input:focus {
+      outline: none;
+      border-color: var(--border-focus);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 20px;
+    }
+    @media (max-width: 960px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+    }
+    .card-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .card-header h2 {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: var(--text-muted);
+    }
+    .card-body {
+      padding: 16px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    textarea {
+      width: 100%;
+      height: 280px;
+      background: var(--bg-base);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      color: var(--text-main);
+      font-family: var(--font-code);
+      font-size: 13px;
+      line-height: 1.6;
+      resize: vertical;
+    }
+    textarea:focus {
+      outline: none;
+      border-color: var(--border-focus);
+    }
+
+    .params-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .param-field label {
+      display: block;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+    .param-field input, .param-field select {
+      width: 100%;
+      background: var(--bg-base);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 10px;
+      color: var(--text-main);
+      font-size: 12px;
+      font-family: var(--font-code);
+    }
+
+    .button-group {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+    button {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      border-radius: 6px;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    button:hover {
+      background: #21262d;
+      border-color: #8b949e;
+    }
+    button.primary {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+    button.primary:hover {
+      background: var(--primary-hover);
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .metric-card {
+      background: var(--bg-base);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 12px;
+    }
+    .metric-value {
+      font-size: 20px;
+      font-weight: 600;
+      font-family: var(--font-code);
+    }
+    .metric-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .chunks-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 520px;
+      overflow-y: auto;
+    }
+    .chunk-card {
+      background: var(--bg-base);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+    }
+    .chunk-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-family: var(--font-code);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .chunk-text {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 8px 10px;
+      font-family: var(--font-code);
+      font-size: 12px;
+      line-height: 1.5;
+      color: #e6edf3;
+      white-space: pre-wrap;
+    }
+    .chunk-analysis {
+      margin-top: 8px;
+      padding: 8px 10px;
+      border-radius: 4px;
+      background: rgba(31, 111, 235, 0.08);
+      border: 1px solid rgba(56, 139, 253, 0.2);
+      font-size: 12px;
+    }
+    .chunk-analysis strong {
+      color: var(--border-focus);
+      display: block;
+      margin-bottom: 4px;
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 16px;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex; align-items:center;">
+    <span class="brand-title">DocuGraph</span>
+    <span class="brand-subtitle">RAG Context Engineering & Chunking Evaluator</span>
+  </div>
+  <div class="badge" id="engineStatus">Ready</div>
+</header>
+
+<main>
+  <div class="config-strip">
+    <label for="apiKey">Gemini API Key</label>
+    <input type="password" id="apiKey" placeholder="AIzaSy...">
+    <button id="saveKey">Store Key</button>
+    <span id="keyLabel" style="font-size:12px; color:var(--text-muted);">Stored locally in browser session</span>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-header">
+        <h2>Document Ingestion Buffer</h2>
+        <span class="badge">Plain Text / Markdown</span>
+      </div>
+      <div class="card-body">
+        <textarea id="docInput" spellcheck="false" placeholder="# Paste knowledge base documentation or reference text here..."></textarea>
+        
+        <div class="params-grid">
+          <div class="param-field">
+            <label>Strategy</label>
+            <select id="chunkStrategy">
+              <option value="fixed">Fixed Character</option>
+              <option value="paragraph">Recursive Paragraph</option>
+            </select>
+          </div>
+          <div class="param-field">
+            <label>Chunk Size</label>
+            <input type="number" id="chunkSize" value="450" step="50">
+          </div>
+          <div class="param-field">
+            <label>Chunk Overlap</label>
+            <input type="number" id="chunkOverlap" value="80" step="10">
+          </div>
+        </div>
+
+        <div class="button-group">
+          <button id="demoBtn">Load Benchmark Text</button>
+          <button id="clearBtn">Clear</button>
+        </div>
+
+        <div class="button-group" style="margin-top: 14px;">
+          <button id="partitionBtn" style="flex: 1;">Generate Chunks</button>
+          <button id="evalBtn" class="primary" style="flex: 1;">Run Semantic Quality Audit</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h2>Partition Inspector</h2>
+        <button id="exportBtn" style="padding: 3px 8px; font-size: 11px;">Export JSON</button>
+      </div>
+      <div class="card-body">
+        <div class="metrics">
+          <div class="metric-card">
+            <div class="metric-value" id="totalChunks">0</div>
+            <div class="metric-label">Chunks</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value" id="avgLength">0</div>
+            <div class="metric-label">Avg Characters</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value" id="overlapRatio">0%</div>
+            <div class="metric-label">Overlap Ratio</div>
+          </div>
+        </div>
+
+        <div class="chunks-container" id="chunksContainer">
+          <div class="empty-state">No chunks partitioned. Ingest documentation to begin.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+
+window.addEventListener('DOMContentLoaded', () => {
+  const stored = localStorage.getItem('docugraph_gemini_key');
+  if (stored) {
+    $('apiKey').value = stored;
+    $('keyLabel').textContent = "Key configured";
+    $('keyLabel').style.color = "var(--success)";
+  }
+});
+
+$('saveKey').addEventListener('click', () => {
+  const val = $('apiKey').value.trim();
+  if (val) {
+    localStorage.setItem('docugraph_gemini_key', val);
+    $('keyLabel').textContent = "Key saved";
+    $('keyLabel').style.color = "var(--success)";
+  } else {
+    localStorage.removeItem('docugraph_gemini_key');
+    $('keyLabel').textContent = "Key cleared";
+    $('keyLabel').style.color = "var(--text-muted)";
+  }
+});
+
+const benchmarkText = `Retrieval-Augmented Generation (RAG) is an architectural pattern designed to supplement large language models with dynamic external data. Traditional neural parameter memories store knowledge statically. Consequently, models suffer from training cutoffs and domain hallucinations.
+
+In a production RAG pipeline, the ingestion stage dictates retrieval precision. Documents are broken down into discrete segments termed "chunks". If chunk sizes are excessively small, semantic context degrades, leaving embedding models unable to capture document intent. Conversely, excessively large chunks introduce token bloat and dilute relevant signals with conversational noise.
+
+Recursive character chunking attempts to partition text along natural structural boundaries: paragraphs, sentence terminators, and whitespace delimiters. Combining structural chunking with overlapping windows guarantees that entity co-references spanning chunk boundaries remain accessible to dense vector embeddings.
+
+Evaluating retrieval systems necessitates measuring semantic continuity and synthetic question answer alignment across partitions. When context windows fragment key facts, downstream generation fails during context injection.`;
+
+let generatedChunks = [];
+
+function partitionText(text, strategy, size, overlap) {
+  if (!text.trim()) return [];
+  const chunks = [];
+
+  if (strategy === "paragraph") {
+    const rawParagraphs = text.split(/\n\s*\n/).filter(p => p.trim().length > 0);
+    rawParagraphs.forEach((para, idx) => {
+      chunks.push({
+        id: `CHK-${String(idx + 1).padStart(3, '0')}`,
+        content: para.trim(),
+        length: para.trim().length,
+        analysis: null
+      });
+    });
+  } else {
+    let cursor = 0;
+    let idx = 1;
+    while (cursor < text.length) {
+      const segment = text.slice(cursor, cursor + size);
+      chunks.push({
+        id: `CHK-${String(idx).padStart(3, '0')}`,
+        content: segment,
+        length: segment.length,
+        analysis: null
+      });
+      cursor += (size - overlap);
+      idx++;
+      if (cursor + overlap >= text.length && cursor < text.length) {
+        break;
+      }
+    }
+  }
+  return chunks;
+}
+
+function updateMetrics() {
+  $('totalChunks').textContent = generatedChunks.length;
+  if (!generatedChunks.length) {
+    $('avgLength').textContent = "0";
+    $('overlapRatio').textContent = "0%";
+    $('chunksContainer').innerHTML = '<div class="empty-state">No chunks partitioned. Ingest documentation to begin.</div>';
+    return;
+  }
+
+  const avg = Math.round(generatedChunks.reduce((acc, c) => acc + c.length, 0) / generatedChunks.length);
+  const overlap = parseInt($('chunkOverlap').value) || 0;
+  const size = parseInt($('chunkSize').value) || 1;
+  const ratio = Math.round((overlap / size) * 100);
+
+  $('avgLength').textContent = avg;
+  $('overlapRatio').textContent = `${ratio}%`;
+
+  $('chunksContainer').innerHTML = generatedChunks.map(c => `
+    <div class="chunk-card">
+      <div class="chunk-header">
+        <span>${c.id}</span>
+        <span>${c.length} chars</span>
+      </div>
+      <div class="chunk-text">${escape(c.content)}</div>
+      ${c.analysis ? `
+        <div class="chunk-analysis">
+          <strong>Semantic Continuity & Test Query:</strong>
+          <div>Continuity Score: ${escape(c.analysis.coherence)}/10</div>
+          <div style="margin-top:4px;">Test Query: "${escape(c.analysis.synthetic_query)}"</div>
+          <div style="color:var(--text-muted); margin-top:4px;">Observation: ${escape(c.analysis.notes)}</div>
+        </div>
+      ` : ''}
+    </div>
+  `).join('');
+}
+
+function escape(str) {
+  return String(str || '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[c]);
+}
+
+$('partitionBtn').addEventListener('click', () => {
+  const text = $('docInput').value;
+  const strat = $('chunkStrategy').value;
+  const size = parseInt($('chunkSize').value) || 300;
+  const overlap = parseInt($('chunkOverlap').value) || 50;
+
+  generatedChunks = partitionText(text, strat, size, overlap);
+  updateMetrics();
+  $('engineStatus').textContent = "Partition Complete";
+});
+
+$('evalBtn').addEventListener('click', async () => {
+  const key = $('apiKey').value.trim() || localStorage.getItem('docugraph_gemini_key');
+  if (!generatedChunks.length) {
+    alert("Please generate chunks before running semantic quality audit.");
+    return;
+  }
+  if (!key) {
+    alert("Please configure a Gemini API key.");
+    return;
+  }
+
+  $('engineStatus').textContent = "Auditing Semantic Quality";
+
+  const systemPrompt = `You are a RAG (Retrieval-Augmented Generation) Context Quality Auditor.
+Evaluate each chunk provided in the JSON input for information self-containment and retrieval utility.
+Return strictly a JSON array matching the number of chunks with these exact keys:
+- "id": same chunk id
+- "coherence": integer from 1 to 10 (10 means completely self-contained and logical, 1 means fragmented sentence fragment)
+- "synthetic_query": realistic user question that this chunk accurately answers
+- "notes": concise one-line observation regarding boundary cutoffs or context loss
+
+Do not use markdown formatting or fences. Return raw JSON array only.`;
+
+  const payloadChunks = generatedChunks.map(c => ({ id: c.id, text: c.content }));
+
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [
+          { role: "user", parts: [{ text: `${systemPrompt}\n\nChunks to evaluate:\n${JSON.stringify(payloadChunks)}` }] }
+        ],
+        generationConfig: { responseMimeType: "application/json" }
+      })
+    });
+
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+
+    const evaluations = JSON.parse(data.candidates[0].content.parts[0].text);
+    const evalMap = new Map(evaluations.map(e => [e.id, e]));
+
+    generatedChunks.forEach(c => {
+      if (evalMap.has(c.id)) {
+        c.analysis = evalMap.get(c.id);
+      }
+    });
+
+    updateMetrics();
+    $('engineStatus').textContent = "Audit Complete";
+  } catch (err) {
+    $('engineStatus').textContent = "Audit Failed";
+    alert(`Error: ${err.message}`);
+  }
+});
+
+$('demoBtn').addEventListener('click', () => {$('docInput').value = benchmarkText;
+});
+
+$('clearBtn').addEventListener('click', () => {$('docInput').value = '';
+  generatedChunks = [];
+  updateMetrics();
+  $('engineStatus').textContent = "Ready";
+});
+
+$('exportBtn').addEventListener('click', () => {
+  if (!generatedChunks.length) return;
+  const blob = new Blob([JSON.stringify({ project: "DocuGraph", partitions: generatedChunks }, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "docugraph-partitions.json";
+  a.click();
+  URL.revokeObjectURL(url);
+});
+</script>
+</body>
 </html>
